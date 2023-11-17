@@ -148,11 +148,8 @@ def probability_from_PROBS(person, one_gene, two_genes, person_has_trait) -> flo
         return probability_of_0_genes*p_trait
 
 
-def probability_from_parents(people, name, one_gene, two_genes):
-    """
-    Return the probability of a person having 0, 1 or 2 genes
-    given whether their parents have 0, 1 or 2 genes
-    """
+def probability_from_parents(people, name, one_gene, two_genes) -> tuple[float, float]:
+
     person = people[name]
 
     mother = person["mother"]
@@ -166,11 +163,8 @@ def probability_from_parents(people, name, one_gene, two_genes):
         else:
             return 0.0 + PROBS["mutation"]
 
-    p_mother = pr(mother)
-    p_father = pr(father)
+    return pr(mother), pr(father)
 
-    parental_probability = p_mother * (1 - p_father) + p_father * (1 - p_mother)
-    return parental_probability
 
 
 def get_person_probability(people, name, one_gene, two_genes, have_trait) -> float:
@@ -185,13 +179,16 @@ def get_person_probability(people, name, one_gene, two_genes, have_trait) -> flo
         return probability_from_PROBS(person, one_gene, two_genes, person_has_trait)
 
     else:
-        parental_probability = probability_from_parents(people, name, one_gene, two_genes)
+        p_mother, p_father = probability_from_parents(people, name, one_gene, two_genes)
 
         if name in two_genes:
+            parental_probability = p_mother * p_father
             return parental_probability * PROBS["trait"][2][person_has_trait]
         elif name in one_gene:
+            parental_probability = p_mother * (1 - p_father) + p_father * (1 - p_mother)
             return parental_probability * PROBS["trait"][1][person_has_trait]
         else:
+            parental_probability = (1 - p_mother) * (1 - p_father) 
             return parental_probability * PROBS["trait"][0][person_has_trait]
 
 
@@ -215,6 +212,7 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         joint_p *= p
 
     return joint_p
+
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
     """
