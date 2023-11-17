@@ -128,6 +128,76 @@ def powerset(s):
     ]
 
 
+def probability_from_PROBS(person, one_gene, two_genes, person_has_trait) -> float:
+    """
+    Return the probability of a person having 0, 1 or 2 genes
+    given whether they display a trait
+    """
+    name = person['name']
+    if name in two_genes:
+        probability_of_2_genes = PROBS["gene"][2]
+        p_trait = PROBS["trait"][2][person_has_trait]
+        print(probability_of_2_genes, p_trait)
+        return probability_of_2_genes*p_trait
+    elif name in one_gene:
+        probability_of_1_gene = PROBS["gene"][1]
+        p_trait = PROBS["trait"][1][person_has_trait]
+        return probability_of_1_gene*p_trait
+    else:
+        probability_of_0_genes = PROBS["gene"][0]
+        p_trait = PROBS["trait"][0][person_has_trait]
+        return probability_of_0_genes*p_trait
+
+
+def probability_from_parents(people, name, one_gene, two_genes, have_trait):
+    """
+    Return the probability of a person having 0, 1 or 2 genes
+    given whether their parents have 0, 1 or 2 genes
+    """
+    person = people[name]
+
+    mother = person["mother"]
+    father = person["father"]
+
+    def pr(parent):
+        if parent in two_genes:
+            return 1.0 - PROBS["mutation"]
+        elif mother in one_gene:
+            return 0.5
+        else:
+            return 0.0 + PROBS["mutation"]
+
+    p_mother = pr(mother)
+    p_father = pr(father)
+
+    parental_probability = p_mother * p_mother + p_father * p_father
+    return parental_probability
+
+
+def get_person_probability(people, name, one_gene, two_genes, have_trait) -> float:
+    """
+    Return the probability of a person having 0, 1 or 2 genes
+    given whether they display a trait
+    """
+    person = people[name]
+    person_has_trait = person['name'] in have_trait
+    #person_has_trait = person['trait'] => have_trait input is surely redundant
+    if person['mother'] is None and person['father'] is None:
+        return probability_from_PROBS(person, one_gene, two_genes, person_has_trait)
+
+    else:
+        parental_probability = probability_from_parents(people, name, one_gene, two_genes, have_trait)
+
+        if name in two_genes:
+            return parental_probability * PROBS["trait"][2][person_has_trait]
+        elif name in one_gene:
+            print(name, parental_probability, PROBS["trait"][1][person_has_trait])
+            return parental_probability * PROBS["trait"][1][person_has_trait]
+        else:
+            return parental_probability * PROBS["trait"][0][person_has_trait]
+
+
+
 def joint_probability(people, one_gene, two_genes, have_trait):
     """
     Compute and return a joint probability.
@@ -139,8 +209,15 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    raise NotImplementedError
+    joint_p = 1 # we will multiply the probabilities of each person in the set
 
+    # TODO: remove repetition
+    # assuming that all people in the set have 2 or 0 parents
+    for name, _ in people.items():
+        p = get_person_probability(people, name, one_gene, two_genes, have_trait)
+        joint_p *= p
+
+    return joint_p
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
     """
